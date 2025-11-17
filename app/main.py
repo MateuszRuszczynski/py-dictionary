@@ -1,37 +1,41 @@
 class Dictionary:
-    """Najprostsza możliwa implementacja własnego słownika."""
+    """Najprostsza możliwa implementacja słownika (hash table)."""
 
-    def __init__(self, initial_capacity: int = 8) -> None:
+    def __init__(self, initial_capacity: int = 4) -> None:
         self.capacity = initial_capacity
         self.size = 0
         self.table = [[] for _ in range(self.capacity)]
 
-    def _bucket_index(self, key: int) -> int:
-        return hash(key) % self.capacity
+    def _cell_index(self, hashed_key: any) -> int:
+        # wybieramy numer komórki na podstawie gotowego hasha
+        return hashed_key % self.capacity
 
     def __setitem__(self, key: any, value: any) -> None:
-        index = self._bucket_index(key)
-        bucket = self.table[index]
+        hashed_key = hash(key)
+        index = self._cell_index(hashed_key)
+        cell = self.table[index]
 
-        # sprawdź czy klucz już istnieje
-        for i, (k, v) in enumerate(bucket):
+        # sprawdzamy, czy klucz już istnieje
+        for i, (k, h, v) in enumerate(cell):
             if k == key:
-                bucket[i] = (key, value)
+                # nadpisujemy istniejący element
+                cell[i] = (key, hashed_key, value)
                 return
 
-        # wstaw nowy element
-        bucket.append((key, value))
+        # jeśli nie było, dodajemy nowy węzeł (key, hash, value)
+        cell.append((key, hashed_key, value))
         self.size += 1
 
-        # sprawdz czy trzeba powiększyć tablicę
+        # jeśli jest za pełno → rozszerz
         if self.size / self.capacity > 0.75:
             self._resize()
 
-    def __getitem__(self, key: any) -> None:
-        index = self._bucket_index(key)
-        bucket = self.table[index]
+    def __getitem__(self, key: any) -> any:
+        hashed_key = hash(key)
+        index = self._cell_index(hashed_key)
+        cell = self.table[index]
 
-        for k, v in bucket:
+        for k, h, v in cell:
             if k == key:
                 return v
 
@@ -44,8 +48,9 @@ class Dictionary:
         old_table = self.table
         self.capacity *= 2
         self.table = [[] for _ in range(self.capacity)]
-        self.size = 0  # zostanie naliczona ponownie podczas reinsertów
+        self.size = 0
 
-        for bucket in old_table:
-            for key, value in bucket:
+        # przepisujemy stare elementy do nowej tabeli
+        for cell in old_table:
+            for key, hashed_key, value in cell:
                 self[key] = value
